@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Food Classifier</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" name="image" id="image" accept="image/*" required>
+        <button type="submit">Upload and Classify</button>
+    </form>
+    <div id="results"></div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            const response = await fetch('/classify', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.error) {
+                document.getElementById('results').innerText = result.error;
+            } else {
+                const detectedItems = result.detected_items.join(', ');
+                document.getElementById('results').innerHTML = `
+                    <h2>Detected Items:</h2>
+                    <p>${detectedItems}</p>
+                    <button onclick="getRecipes('${detectedItems}')">Get Recipes</button>
+                `;
+            }
+        });
+
+        async function getRecipes(items) {
+            const response = await fetch('/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: items.split(', ') })
+            });
+            const result = await response.json();
+
+            if (result.error) {
+                alert(result.error);
+            } else {
+                const recipes = result.recipes.map(r => `<li>${r.title}</li>`).join('');
+                document.getElementById('results').innerHTML += `
+                    <h2>Recipes:</h2>
+                    <ul>${recipes}</ul>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
